@@ -1,2 +1,181 @@
-просмотр новых фильмов 
-streameX.лучший выбор для просмотра фильмов 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreameX Style Slider with Arrows</title>
+<style>
+body { margin:0; font-family: Arial,sans-serif; background:#111; color:white; }
+header { position:fixed; top:0; left:0; width:100%; background:#1c1c1c; z-index:100; display:flex; justify-content:center; gap:20px; padding:15px; font-size:16px; }
+header a { color:white; text-decoration:none; transition:color 0.2s; }
+header a:hover { color:red; }
+section { padding:100px 20px 40px 20px; position:relative; }
+.section-title { font-size:22px; margin-bottom:10px; border-bottom:1px solid gray; padding-bottom:5px; }
+.slider-container { position:relative; }
+.slider { display:flex; overflow-x:auto; gap:10px; scroll-behavior:smooth; padding-bottom:10px; }
+.slider::-webkit-scrollbar { display:none; }
+.movie-card { flex:0 0 auto; width:200px; cursor:pointer; position:relative; transition:transform 0.2s; }
+.movie-card:hover { transform:scale(1.05); }
+.movie-card img { width:100%; height:300px; object-fit:cover; border-radius:8px; }
+.movie-title { position:absolute; bottom:5px; left:5px; right:5px; text-align:center; background:rgba(0,0,0,0.6); padding:2px 4px; border-radius:3px; font-size:14px; }
+.slider-arrow { position:absolute; top:50%; transform:translateY(-50%); font-size:30px; background:rgba(0,0,0,0.6); padding:5px 10px; border-radius:5px; cursor:pointer; user-select:none; z-index:10; }
+.slider-arrow:hover { background:rgba(255,0,0,0.8); }
+.arrow-left { left:0; }
+.arrow-right { right:0; }
+#player-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); justify-content:center; align-items:center; flex-direction:column; z-index:1000; }
+#player-overlay video { width:80%; max-width:900px; border-radius:10px; }
+#player-overlay button { margin-top:10px; padding:10px 20px; font-size:16px; cursor:pointer; background:red; border:none; color:white; border-radius:5px; }
+#search-container { text-align:center; margin:20px 0; }
+#search { width:300px; padding:8px; font-size:16px; border-radius:5px; border:none; }
+.movie-card button { position:absolute; top:5px; right:5px; padding:5px 8px; border:none; background:red; color:white; border-radius:5px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<header>
+    <a href="#home">Home</a>
+    <a href="#movies">Movies</a>
+    <a href="#tv">TV Shows</a>
+    <a href="#anime">Anime</a>
+    <a href="#favorites">Watchlist</a>
+</header>
+
+<section id="home">
+    <div class="section-title">Welcome to StreameX Style</div>
+    <div id="search-container">
+        <input id="search" placeholder="Search movies...">
+    </div>
+</section>
+
+<section id="movies">
+    <div class="section-title">Movies</div>
+    <div class="slider-container">
+        <div class="slider-arrow arrow-left" onclick="scrollLeft('movies-slider')">&#10094;</div>
+        <div class="slider" id="movies-slider"></div>
+        <div class="slider-arrow arrow-right" onclick="scrollRight('movies-slider')">&#10095;</div>
+    </div>
+</section>
+
+<section id="tv">
+    <div class="section-title">TV Shows</div>
+    <div class="slider-container">
+        <div class="slider-arrow arrow-left" onclick="scrollLeft('tv-slider')">&#10094;</div>
+        <div class="slider" id="tv-slider"></div>
+        <div class="slider-arrow arrow-right" onclick="scrollRight('tv-slider')">&#10095;</div>
+    </div>
+</section>
+
+<section id="anime">
+    <div class="section-title">Anime</div>
+    <div class="slider-container">
+        <div class="slider-arrow arrow-left" onclick="scrollLeft('anime-slider')">&#10094;</div>
+        <div class="slider" id="anime-slider"></div>
+        <div class="slider-arrow arrow-right" onclick="scrollRight('anime-slider')">&#10095;</div>
+    </div>
+</section>
+
+<section id="favorites">
+    <div class="section-title">Watchlist</div>
+    <div class="slider-container">
+        <div class="slider-arrow arrow-left" onclick="scrollLeft('favorites-slider')">&#10094;</div>
+        <div class="slider" id="favorites-slider"></div>
+        <div class="slider-arrow arrow-right" onclick="scrollRight('favorites-slider')">&#10095;</div>
+    </div>
+</section>
+
+<div id="player-overlay">
+    <video controls id="movie-player">
+        <source src="" type="video/mp4">
+        <source src="" type="video/mp4">
+        <source src="" type="video/mp4">
+        <source src="" type="video/mp4">
+        <source src="" type="video/mp4">
+        <source src="" type="video/mp4">
+        <source src="" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+    <button onclick="closePlayer()">Close</button>
+</div>
+
+<script>
+// Функция генерации 20 видео для каждой категории
+function generateVideos(prefix){
+    let arr = [];
+    for(let i=1;i<=20;i++){
+        arr.push({
+            title:`${prefix} ${i}`,
+            poster:`https://via.placeholder.com/200x300?text=${prefix}+${i}`,
+            videos:[
+                `videos/${prefix.toLowerCase()}${i}_1.mp4`,
+                `videos/${prefix.toLowerCase()}${i}_2.mp4`,
+                `videos/${prefix.toLowerCase()}${i}_3.mp4`
+            ]
+        });
+    }
+    return arr;
+}
+
+// Категории
+const movies = generateVideos("Movie");
+const tvShows = generateVideos("TV");
+const anime = generateVideos("Anime");
+let favorites = [];
+
+// Рендер слайдера
+function renderSlider(containerId, arr){
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    arr.forEach(item=>{
+        const card = document.createElement("div");
+        card.className = "movie-card";
+        card.innerHTML=`<img src="${item.poster}" alt="${item.title}"><div class="movie-title">${item.title}</div>`;
+        card.addEventListener("click", ()=>openPlayer(item));
+        const favBtn = document.createElement("button");
+        favBtn.textContent="❤️";
+        favBtn.addEventListener("click", e=>{
+            e.stopPropagation();
+            if(!favorites.includes(item)) favorites.push(item);
+            renderSlider("favorites-slider", favorites);
+        });
+        card.appendChild(favBtn);
+        container.appendChild(card);
+    });
+}
+
+// Инициализация
+renderSlider("movies-slider", movies);
+renderSlider("tv-slider", tvShows);
+renderSlider("anime-slider", anime);
+
+// Плеер
+const playerOverlay = document.getElementById("player-overlay");
+const videoEl = document.getElementById("movie-player");
+function openPlayer(item){
+    const sources = videoEl.querySelectorAll("source");
+    for(let i=0;i<7;i++){ sources[i].src = item.videos[i] || ""; }
+    videoEl.load();
+    playerOverlay.style.display="flex";
+    videoEl.play();
+}
+function closePlayer(){ videoEl.pause(); playerOverlay.style.display="none"; videoEl.currentTime=0; }
+
+// Поиск по Movies
+document.getElementById("search").addEventListener("input", e=>{
+    const query = e.target.value.toLowerCase();
+    const filtered = movies.filter(m=>m.title.toLowerCase().includes(query));
+    renderSlider("movies-slider", filtered);
+});
+
+// Функции скролла стрелками
+function scrollLeft(sliderId){
+    const slider = document.getElementById(sliderId);
+    slider.scrollBy({left:-500, behavior:"smooth"});
+}
+function scrollRight(sliderId){
+    const slider = document.getElementById(sliderId);
+    slider.scrollBy({left:500, behavior:"smooth"});
+}
+</script>
+
+</body>
+</html>
